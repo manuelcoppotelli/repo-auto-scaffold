@@ -1,0 +1,68 @@
+name: Setup Repository
+
+on:
+  issues:
+    types: opened
+
+concurrency: main
+
+jobs:
+  setup_repo:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - uses: stefanbuck/github-issue-praser@v2
+      id: issue-parser
+      with:
+        template-path: .github/ISSUE_TEMPLATE/init-repo.yaml
+
+    - name: Compute normalized_service_name
+      id: normalize
+      shell: bash
+      run: |
+        normalized_service_name=$(echo "${{fromJson(steps.issue-parser.outputs.jsonString).service_name}}" | sed 's/ /-/g' | tr '[:upper:]' '[:lower:]')
+
+        echo "::set-output name=NORMALIZED_SERVICE_NAME::$normalized_service_name"
+
+    - name: Placeholder service_name
+      uses: jacobtomlinson/gha-find-replace@v2
+      with:
+        find: '%service_name%'
+        replace: '${{fromJson(steps.issue-parser.outputs.jsonString).service_name}}'
+        regex: false
+
+    - name: Placeholder normalized_service_name
+      uses: jacobtomlinson/gha-find-replace@v2
+      with:
+        find: '%normalized_service_name%'
+        replace: '${{steps.normalize.outputs.NORMALIZED_SERVICE_NAME}}'
+        regex: false
+
+    - name: Placeholder service_description
+      uses: jacobtomlinson/gha-find-replace@v2
+      with:
+        find: '%service_description%'
+        replace: '${{fromJson(steps.issue-parser.outputs.jsonString).service_description}}'
+        regex: false
+
+    - name: File adjustments
+      shell: bash
+      run: |
+        rm -rf .github/ISSUE_TEMPLATE/init-repo.yaml
+        rm -rf .github/workflows/setup-repo.yaml
+        sed -i '1,/---/d' README.md
+
+    - name: Commit changes
+      shell: bash
+      run: |
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git config --global user.name "github-actions[bot]"
+        git add .
+        git commit --amend --no-edit
+        git push --force
+
+    - name: Close issue
+      uses: peter-evans/close-issue@v1
+      with:
+        comment: Done! Check out your new <a href="../">REPO</a>!

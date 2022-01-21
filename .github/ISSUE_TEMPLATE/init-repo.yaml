@@ -1,0 +1,21 @@
+name: Initialize Repository
+title: Initialize Repository
+description: Basing repository scaffolding with basic details
+labels:
+- question
+body:
+- type: input
+  id: service_name
+  attributes:
+    label: Name
+    description: The name of the service
+    placeholder: payment processor
+  validations:
+    required: true
+- type: textarea
+  id: service_description
+  attributes:
+    label: Description
+    placeholder: This is a simple Node.js service to compute process payments
+  validations:
+    required: true
